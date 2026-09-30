@@ -5,12 +5,17 @@ import {
   Route
 } from 'react-router-dom';
 
+
 import {LandingPage} from './pages/LandingPage';
 import {SignUp} from './pages/SignUp';
 import {Login} from './pages/Login';
 import {ProviderDashboard} from './pages/ProviderDashboard';
 import {BookingPage} from './pages/BookingPage';
-// import './styles/global.css'
+
+import {DesignDemo} from "./pages/DesignDemo";
+
+
+import './styles/global.css'
 
 
 
@@ -36,6 +41,8 @@ export const App = () => {
         <Route path="/provider" element={<ProviderDashboard />} />
         
         <Route path="/book/:providerName" element={<BookingPage />} />
+
+        <Route path="/designDemo" element={<DesignDemo />} />
         
       </Routes>
       

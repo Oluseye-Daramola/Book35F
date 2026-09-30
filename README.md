@@ -1,16 +1,29 @@
-# React + Vite
+# Book35-frntend — Appointment Booking Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+## Routes
+/ · /signup · /login · /provider · /book/:providerName
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## React Compiler
+## Folder structure
+components/ · pages/ · styles/ · utils/ · context/
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
+## Note :
+1. I used native css for design and components.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. DesignDemo.jsx  - is just a demo page showing all possible states of the all components created for this project.
+
+   - Visit this route "<link>/designDemo" to see on browser
+
+3. App.jsx contains the routes to pages
+
+4. see public & assest for images/ favicon related to this project.
+
+5. You can decide to use tailwindcss for your own page layouts and utils (if any). But note... components shouldn't be changed as they remained natively styled.
+
+6. Please lets all try to keep using "named-export" and not "default-export".
+
+7. DesignToken.css file contains all style variables.
+
+8. Global.css is like the reset as well as default styles for browser and elements
