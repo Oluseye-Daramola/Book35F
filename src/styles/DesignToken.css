@@ -34,5 +34,9 @@
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 40px;
+
+  
+  /* For bother Radius */
+  --radius-sm: 6px;
   
 }

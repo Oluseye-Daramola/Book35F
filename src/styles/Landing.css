@@ -1,28 +1,31 @@
 
 
 
+@media (max-width: 480px) {
+  .hero .text-display {
+    font-size: 24px;
+    line-height: 32px;
+  }
+}
+
+
 .hero {
   text-align: center;
-  padding: 50px 16px 40px;
+  padding: 40px 16px 40px;   /* was 50px */
   max-width: 560px;
   margin: 0 auto;
 }
 
-/*.logo {
+
+.logo {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-weight: 600;
   color: var(--color-ink-navy);
   text-decoration: none;
-} */
+} 
 
-.logo-mark {
-  width: 40%;/* 22px;*/
-  height: 20%; 
-  object-fit: contain;
-  flex-shrink: 0;
-}
 
 .hero-ctas {
   display: flex;

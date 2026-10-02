@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import {Button} from '../components/Button';
 import {Card} from '../components/Card';
 import {Logo} from '../components/Logo';
+import {NavBar} from "../components/NavBar";
+import {TopBar} from "../components/TopBar";
+
+
 
 import '../styles/Landing.css';
 
@@ -12,16 +16,24 @@ import '../styles/Landing.css';
 
 
 export const LandingPage=()=>{
+  
   return (
+    
     <div>
       
-      <div className="hero">
-        
-        <div style={{ marginBottom: 20 }}>
-          <Logo />
-        </div>
 
-        <p className="text-display">Appointment booking, made simple</p>
+      <TopBar />
+      
+      <NavBar />
+
+      
+      
+      <div id="home" className="hero">
+
+        <p className="text-display">
+          Appointment booking, made simple and seamless
+        </p>
+        
         <p style={{ marginTop: 10 }}>
           Set your hours once. Share a link. Let people book straight into
           your calendar.
@@ -46,7 +58,8 @@ export const LandingPage=()=>{
       </div>
 
       
-      <div className="how-it-works">
+      
+      <div id="about" className="how-it-works">
         
         <Card>
           <h2>For providers</h2>
@@ -63,6 +76,33 @@ export const LandingPage=()=>{
         </Card>
         
       </div>
+      
+
+      <div id="services" className="flex flex-col items-center py-16 px-6">
+        
+        <h2>
+          Services
+        </h2>
+        
+        <p className="text-caption">
+          Placeholder section — content TBD.
+        </p>
+        
+      </div>
+      
+
+      <div id="contact" className="flex flex-col items-center py-16 px-6">
+        
+        <h2>
+          Contact
+        </h2>
+        
+        <p className="text-caption">
+          Placeholder section — content TBD.
+        </p>
+        
+      </div>
+      
       
     </div>
     
