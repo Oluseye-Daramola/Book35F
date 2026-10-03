@@ -1,13 +1,13 @@
-import { StrictMode } from 'react'
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 
 //imported variables and defined style classess
-import './styles/global.css';
-import './styles/components.css';
+import './styles/Global.css';
+import './styles/Components.css';
 
 
-import {App} from './App.jsx'
+import {App} from './App.jsx'; 
 
 
 
@@ -21,4 +21,4 @@ createRoot(document.getElementById('root')).render(
     
   </StrictMode>,
   
-)
+); 

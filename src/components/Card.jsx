@@ -3,6 +3,7 @@
 
 export const Card = (
   { children, style }
+  
 ) => {
   
   return (
