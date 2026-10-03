@@ -62,14 +62,14 @@ export const LandingPage=()=>{
       <div id="about" className="how-it-works">
         
         <Card>
-          <h2>For providers</h2>
-          <p>
-            Set your availability. Share a link. Get bookings.
-          </p>
+          <h2>For Providers</h2>
+            <p>Set your availability </p>
+            <p>Share a link </p>
+            <p>Get bookings</p>
         </Card>
         
         <Card>
-          <h2>For customers</h2>
+          <h2>For Customers</h2>
           <p>
             Click a link. Choose a time. Confirm your booking.
           </p>

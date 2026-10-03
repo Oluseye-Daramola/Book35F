@@ -12,10 +12,12 @@ import {Login} from './pages/Login';
 import {ProviderDashboard} from './pages/ProviderDashboard';
 import {BookingPage} from './pages/BookingPage';
 
-import {DesignDemo} from "./pages/DesignDemo";
+//import {DesignDemo} from "./pages/DesignDemo";
 
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './utils/ProtectedRoute';
 
-import './styles/global.css'
+import './styles/Global.css'
 
 
 
@@ -28,25 +30,35 @@ import './styles/global.css'
 export const App = () => {
   
   return (
-    <BrowserRouter>
-      
-      <Routes>
-        
-        <Route path="/" element={<LandingPage />} />
-        
-        <Route path="/signup" element={<SignUp />} />
-        
-        <Route path="/login" element={<Login />} />
-        
-        <Route path="/provider" element={<ProviderDashboard />} />
-        
-        <Route path="/book/:providerName" element={<BookingPage />} />
 
-        <Route path="/designDemo" element={<DesignDemo />} />
+    <AuthProvider>
+      <BrowserRouter>
         
-      </Routes>
-      
-    </BrowserRouter>
+        <Routes>
+          
+          <Route path="/" element={<LandingPage />} />
+          
+          <Route path="/signup" element={<SignUp />} />
+          
+          <Route path="/login" element={<Login />} />
+          
+          <Route path="/provider" element={
+            <ProtectedRoute>
+              <ProviderDashboard />
+            </ProtectedRoute>
+          }
+          />
+          
+          <Route path="/book/:providerName" element={<BookingPage />} />
+  
+          {/**
+          <Route path="/designDemo" element={<DesignDemo />} />
+          **/}
+          
+        </Routes>
+        
+      </BrowserRouter>
+    </AuthProvider>
   );
   
 }
