@@ -1,19 +1,9 @@
-@import "tailwindcss";
-
 @import './DesignToken.css';
-
-
-
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-}
-
-
-html {
-  scroll-behavior: smooth;
 }
 
 

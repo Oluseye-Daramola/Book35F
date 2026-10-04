@@ -11,27 +11,21 @@
   text-decoration: none;
   display: inline-block;
   text-align: center;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  min-width: 120px;
 }
 
 
 .btn-primary{
-  background: var(--color-ink-navy);
-  color: var(--color-off-white);
+  background: var(--color-ink-navy); color: var(--color-off-white);
 }
 
 
 .btn-accent{
-  background: var(--color-coral);
-  color: var(--color-off-white);
+  background: var(--color-coral);    color: var(--color-off-white);
 }
 
 
 .btn-secondary{
-  background: var(--color-gray-200);
-  color: var(--color-gray-700);
+  background: var(--color-gray-200); color: var(--color-gray-700);
 }
 
 
