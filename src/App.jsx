@@ -12,18 +12,7 @@ import {Login} from './pages/Login';
 import {ProviderDashboard} from './pages/ProviderDashboard';
 import {BookingPage} from './pages/BookingPage';
 
-import {DesignDemo} from "./pages/DesignDemo";
-
-
-import './styles/global.css'
-
-
-
-
-
-
-
-
+import {DesignDemo} from './pages/DesignDemo';
 
 export const App = () => {
   

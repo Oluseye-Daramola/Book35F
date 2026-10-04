@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import logoImg from '../assets/book35_logo_full.png';
-import './ProviderDashboard.css';
+import '../styles/ProviderDashboard.css';
 
 const initialBookings = [
   {
@@ -42,12 +42,43 @@ const formatDate = (date) =>
     year: 'numeric',
   });
 
+const parseDate = (date) => new Date(`${date}T00:00:00`);
+const maxServiceDescriptionLength = 1000;
+
+const startOfWeek = (date) => {
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+};
+
+const toDateKey = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const defaultAvatar = `data:image/svg+xml;utf8,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+    <defs>
+      <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+        <stop offset="0%" stop-color="#1B1F3B"/>
+        <stop offset="100%" stop-color="#FF6B4A"/>
+      </linearGradient>
+    </defs>
+    <rect width="120" height="120" rx="60" fill="url(#g)"/>
+    <circle cx="60" cy="46" r="20" fill="#fff" fill-opacity="0.92"/>
+    <path d="M28 92c10-16 25-24 32-24s22 8 32 24" fill="#fff" fill-opacity="0.92"/>
+  </svg>
+`)}`;
+
 export const ProviderDashboard = () => {
   const [provider, setProvider] = useState({
     name: 'Provider Name',
     rating: 4.8,
     location: 'Lagos',
-    services: ['Service A', 'Service B'],
+    services: [
+      { name: 'Service A', description: '' },
+      { name: 'Service B', description: '' },
+    ],
+    avatar: defaultAvatar,
   });
   const [bookings, setBookings] = useState(initialBookings);
   const [availability, setAvailability] = useState([]);
@@ -58,11 +89,23 @@ export const ProviderDashboard = () => {
   const [showAvailabilityForm, setShowAvailabilityForm] = useState(false);
   const [profileName, setProfileName] = useState(provider.name);
   const [profileLocation, setProfileLocation] = useState(provider.location);
-  const [profileService, setProfileService] = useState(provider.services[0] ?? '');
+  const [profileServices, setProfileServices] = useState(
+    provider.services.map((service) => ({ ...service })),
+  );
+  const [serviceFormError, setServiceFormError] = useState('');
+  const [profileImage, setProfileImage] = useState(provider.avatar || defaultAvatar);
+  const [imageUploadError, setImageUploadError] = useState('');
   const [slotDate, setSlotDate] = useState('');
-  const [slotTime, setSlotTime] = useState('');
+  const [slotStartTime, setSlotStartTime] = useState('');
+  const [slotEndTime, setSlotEndTime] = useState('');
+  const [slotDuration, setSlotDuration] = useState('30');
+  const [availabilityFormError, setAvailabilityFormError] = useState('');
+  const [calendarWeekStart, setCalendarWeekStart] = useState(() =>
+    startOfWeek(parseDate(initialBookings[0].date)),
+  );
   const [formMessage, setFormMessage] = useState('');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isDesktopNavCollapsed, setIsDesktopNavCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState(
     () => window.location.hash.slice(1) || 'dashboard',
   );
@@ -105,6 +148,21 @@ export const ProviderDashboard = () => {
     };
   }, [isMobileNavOpen]);
 
+  useEffect(() => {
+    if (!showAvailabilityForm) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setShowAvailabilityForm(false);
+    };
+
+    document.body.classList.add('pd-modal-open');
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.classList.remove('pd-modal-open');
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [showAvailabilityForm]);
+
   const filteredBookings = useMemo(() => {
     const query = search.trim().toLowerCase();
     return bookings.filter((booking) => {
@@ -120,7 +178,20 @@ export const ProviderDashboard = () => {
   }, [bookings, filter, search]);
 
   const pendingCount = bookings.filter((booking) => booking.status === 'Pending').length;
-  const confirmedCount = bookings.filter((booking) => booking.status === 'Confirmed').length;
+  const currentWeekStart = startOfWeek(new Date());
+  const nextWeekStart = new Date(currentWeekStart);
+  nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+  const completedThisWeekCount = bookings.filter((booking) => {
+    const completedAt = booking.completedAt;
+    return (
+      booking.status === 'Completed' &&
+      completedAt >= toDateKey(currentWeekStart) &&
+      completedAt < toDateKey(nextWeekStart)
+    );
+  }).length;
+  const displayedServices = (showProfileForm ? profileServices : provider.services)
+    .map((service) => service.name.trim())
+    .filter(Boolean);
   const activeBooking = bookings.find((booking) => booking.id === expandedBooking);
   const calendarItems = [
     ...bookings
@@ -135,54 +206,131 @@ export const ProviderDashboard = () => {
     ...availability.map((slot) => ({
       id: `availability-${slot.id}`,
       date: slot.date,
-      time: slot.time,
-      title: 'Available time',
+      time: slot.startTime,
+      timeLabel: `${slot.startTime}–${slot.endTime}`,
+      title: `${slot.duration}-minute slots`,
       detail: 'Open for booking',
     })),
   ].sort((first, second) =>
     `${first.date}T${first.time}`.localeCompare(`${second.date}T${second.time}`),
   );
+  const calendarDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(calendarWeekStart);
+    date.setDate(date.getDate() + index);
+    const dateKey = toDateKey(date);
+    return {
+      date,
+      dateKey,
+      items: calendarItems.filter((item) => item.date === dateKey),
+    };
+  });
 
   const updateBookingStatus = (id, status) => {
+    const completedAt = status === 'Completed' ? toDateKey(new Date()) : null;
     setBookings((currentBookings) =>
       currentBookings.map((booking) =>
-        booking.id === id ? { ...booking, status } : booking,
+        booking.id === id ? { ...booking, status, completedAt } : booking,
       ),
     );
   };
 
   const saveProfile = (event) => {
     event.preventDefault();
-    if (!profileName.trim() || !profileLocation.trim() || !profileService.trim()) {
-      setFormMessage('Name, location, and service are required.');
+    const services = profileServices
+      .map((service) => ({
+        name: service.name.trim(),
+        description: service.description.trim(),
+      }))
+      .filter((service) => service.name);
+
+    if (services.some((service) => service.description.length > maxServiceDescriptionLength)) {
+      setServiceFormError('Each service description must be 1,000 characters or fewer.');
+      return;
+    }
+    if (!profileName.trim() || !profileLocation.trim() || services.length === 0) {
+      setFormMessage('Name, location, and at least one service are required.');
       return;
     }
     setProvider((currentProvider) => ({
       ...currentProvider,
       name: profileName.trim(),
       location: profileLocation.trim(),
-      services: [profileService.trim(), ...currentProvider.services.slice(1)],
+      services,
+      avatar: profileImage || currentProvider.avatar || defaultAvatar,
     }));
     setShowProfileForm(false);
     setFormMessage('Profile updated.');
   };
 
+  const handleImageUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageUploadError('Please choose an image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfileImage(typeof reader.result === 'string' ? reader.result : defaultAvatar);
+      setImageUploadError('');
+    };
+    reader.onerror = () => {
+      setImageUploadError('Unable to read the selected image.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const openProfileForm = () => {
+    setProfileName(provider.name);
+    setProfileLocation(provider.location);
+    setProfileServices(provider.services.map((service) => ({ ...service })));
+    setServiceFormError('');
+    setProfileImage(provider.avatar || defaultAvatar);
+    setImageUploadError('');
+    setShowProfileForm(true);
+    setFormMessage('');
+  };
+
   const addAvailability = (event) => {
     event.preventDefault();
+    if (slotStartTime >= slotEndTime) {
+      setAvailabilityFormError('End time must be later than start time.');
+      return;
+    }
+
     setAvailability((currentAvailability) => [
       ...currentAvailability,
-      { id: Date.now(), date: slotDate, time: slotTime },
+      {
+        id: Date.now(),
+        date: slotDate,
+        startTime: slotStartTime,
+        endTime: slotEndTime,
+        duration: Number(slotDuration),
+      },
     ]);
+    setAvailabilityFormError('');
+    setCalendarWeekStart(startOfWeek(parseDate(slotDate)));
     setSlotDate('');
-    setSlotTime('');
+    setSlotStartTime('');
+    setSlotEndTime('');
+    setSlotDuration('30');
     setShowAvailabilityForm(false);
     setFormMessage('Availability added.');
+  };
+
+  const openAvailabilityForm = () => {
+    setAvailabilityFormError('');
+    setFormMessage('');
+    setShowProfileForm(false);
+    setShowAvailabilityForm(true);
   };
 
   return (
     <div className="pd-layout">
       <aside
-        className={`pd-sidebar${isMobileNavOpen ? ' pd-sidebar-open' : ''}`}
+        className={`pd-sidebar${isMobileNavOpen ? ' pd-sidebar-open' : ''}${isDesktopNavCollapsed ? ' pd-sidebar-collapsed' : ''}`}
         aria-label="Provider dashboard navigation"
       >
         <div className="pd-sidebar-top">
@@ -190,6 +338,18 @@ export const ProviderDashboard = () => {
             <p>Provider workspace</p>
             <strong>{provider.name}</strong>
           </div>
+          <button
+            className="pd-desktop-sidebar-toggle"
+            type="button"
+            aria-label={isDesktopNavCollapsed ? 'Expand navigation panel' : 'Collapse navigation panel'}
+            aria-expanded={!isDesktopNavCollapsed}
+            aria-controls="pd-navigation"
+            onClick={() => setIsDesktopNavCollapsed((collapsed) => !collapsed)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d={isDesktopNavCollapsed ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'} />
+            </svg>
+          </button>
           <button
             className="pd-mobile-menu-toggle"
             type="button"
@@ -230,6 +390,7 @@ export const ProviderDashboard = () => {
             aria-current={activeSection === 'availability' ? 'location' : undefined}
             onClick={() => {
               setActiveSection('availability');
+              openAvailabilityForm();
               setIsMobileNavOpen(false);
             }}
           >
@@ -279,9 +440,19 @@ export const ProviderDashboard = () => {
           </a>
         </nav>
         <div className="pd-sidebar-account">
-          <span className="pd-account-avatar" aria-hidden="true">
-            {provider.name.trim().charAt(0).toUpperCase()}
-          </span>
+          <button
+            type="button"
+            className="pd-account-avatar pd-account-avatar-button"
+            aria-label={`Edit profile for ${provider.name}`}
+            title="Edit profile"
+            onClick={openProfileForm}
+          >
+            {provider.avatar ? (
+              <img className="pd-account-image" src={provider.avatar} alt="" aria-hidden="true" />
+            ) : (
+              provider.name.trim().charAt(0).toUpperCase()
+            )}
+          </button>
           <div className="pd-account-details">
             <strong title={provider.name}>{provider.name}</strong>
             <span>Provider account</span>
@@ -294,34 +465,45 @@ export const ProviderDashboard = () => {
 
       <main className="provider-dashboard" id="dashboard">
       <header className="pd-header">
-        <div>
-          <p className="pd-eyebrow">Provider Station</p>
-          <h1>{provider.name}</h1>
-          <p className="pd-location">{provider.location} ·Healthcare</p>
+        <div className="pd-header-identity">
+          <div className="pd-header-avatar-wrap">
+            {provider.avatar ? (
+              <img className="pd-header-avatar" src={provider.avatar} alt="" aria-hidden="true" />
+            ) : (
+              <span className="pd-header-avatar pd-header-avatar-fallback" aria-hidden="true">
+                {provider.name.trim().charAt(0).toUpperCase()}
+              </span>
+            )}
+            <button
+              type="button"
+              className="pd-avatar-edit-button"
+              aria-label="Edit profile image"
+              title="Edit profile"
+              onClick={openProfileForm}
+            >
+              ✎
+            </button>
+          </div>
+          <div>
+            <p className="pd-eyebrow">Provider Station</p>
+            <h1>{provider.name}</h1>
+            <p className="pd-location">
+              {[provider.location, displayedServices.join(' · ')].filter(Boolean).join(' · ')}
+            </p>
+          </div>
         </div>
         <img className="pd-brand-logo" src={logoImg} alt="Book35" />
         <div className="pd-header-actions">
-          <span className="pd-rating" aria-label={`Rating ${provider.rating} out of 5`}>
-            <span aria-hidden="true">★</span> {provider.rating}
-          </span>
           <button
             className="pd-btn"
-            onClick={() => {
-              setProfileName(provider.name);
-              setProfileLocation(provider.location);
-              setProfileService(provider.services[0] ?? '');
-              setShowProfileForm((show) => !show);
-              setFormMessage('');
-            }}
+            type="button"
+            onClick={() => (showProfileForm ? setShowProfileForm(false) : openProfileForm())}
           >
-            Edit profile
+            Edit Profile
           </button>
           <button
             className="pd-btn primary"
-            onClick={() => {
-              setShowAvailabilityForm((show) => !show);
-              setFormMessage('');
-            }}
+            onClick={openAvailabilityForm}
           >
             Add availability
           </button>
@@ -349,14 +531,84 @@ export const ProviderDashboard = () => {
               onChange={(event) => setProfileLocation(event.target.value)}
              />
           </label>
-          <label>
-            Service
-            <input
-              required
-              value={profileService}
-              onChange={(event) => setProfileService(event.target.value)}
-            />
+          <fieldset className="pd-service-fields">
+            <legend>Services</legend>
+            {profileServices.map((service, index) => (
+              <div className="pd-service-entry" key={index}>
+                <input
+                  required
+                  aria-label={`Service ${index + 1}`}
+                  placeholder="Service name"
+                  value={service.name}
+                  onChange={(event) => {
+                    setProfileServices((services) =>
+                      services.map((currentService, serviceIndex) =>
+                        serviceIndex === index
+                          ? { ...currentService, name: event.target.value }
+                          : currentService,
+                      ),
+                    );
+                  }}
+                />
+                <button
+                  className="pd-btn pd-small"
+                  type="button"
+                  aria-label={`Remove service ${index + 1}`}
+                  onClick={() =>
+                    setProfileServices((services) =>
+                      services.filter((_, serviceIndex) => serviceIndex !== index),
+                    )
+                  }
+                >
+                  Remove
+                </button>
+                <label className="pd-service-description">
+                  Description
+                  <textarea
+                    aria-label={`Description for service ${index + 1}`}
+                    aria-describedby={`pd-service-description-count-${index}`}
+                    aria-invalid={service.description.length > maxServiceDescriptionLength}
+                    value={service.description}
+                    maxLength={maxServiceDescriptionLength}
+                    onChange={(event) => {
+                      setServiceFormError('');
+                      setProfileServices((services) =>
+                        services.map((currentService, serviceIndex) =>
+                          serviceIndex === index
+                            ? { ...currentService, description: event.target.value }
+                            : currentService,
+                        ),
+                      );
+                    }}
+                    rows={3}
+                  />
+                  <span id={`pd-service-description-count-${index}`}>
+                    {service.description.length} / {maxServiceDescriptionLength} characters
+                  </span>
+                </label>
+              </div>
+            ))}
+            <button
+              className="pd-btn"
+              type="button"
+              onClick={() =>
+                setProfileServices((services) => [
+                  ...services,
+                  { name: '', description: '' },
+                ])
+              }
+            >
+              Add service
+            </button>
+          </fieldset>
+          {serviceFormError && (
+            <p className="pd-form-error" role="alert">{serviceFormError}</p>
+          )}
+          <label className="pd-image-upload-label">
+            Upload image
+            <input type="file" accept="image/*" onChange={handleImageUpload} />
           </label>
+          {imageUploadError && <p className="pd-form-error">{imageUploadError}</p>}
           <div className="pd-form-actions">
             <button className="pd-btn" type="button" onClick={() => setShowProfileForm(false)}>
               Cancel
@@ -367,9 +619,33 @@ export const ProviderDashboard = () => {
       )}
 
       {showAvailabilityForm && (
-        <form className="pd-inline-form" onSubmit={addAvailability}>
-          <h2>Add an available time</h2>
-          <div className="pd-form-fields">
+        <div
+          className="pd-modal-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowAvailabilityForm(false);
+          }}
+        >
+          <form
+            className="pd-availability-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pd-availability-title"
+            onSubmit={addAvailability}
+          >
+            <div className="pd-modal-heading">
+              <div>
+                <p className="pd-eyebrow">Manage your schedule</p>
+                <h2 id="pd-availability-title">Set availability</h2>
+              </div>
+              <button
+                className="pd-modal-close"
+                type="button"
+                aria-label="Close availability form"
+                onClick={() => setShowAvailabilityForm(false)}
+              >
+                ×
+              </button>
+            </div>
             <label>
               Date
               <input
@@ -378,61 +654,77 @@ export const ProviderDashboard = () => {
                 min={new Date().toISOString().slice(0, 10)}
                 value={slotDate}
                 onChange={(event) => setSlotDate(event.target.value)}
+                autoFocus
               />
             </label>
+            <div className="pd-form-fields">
+              <label>
+                Start time
+                <input
+                  type="time"
+                  required
+                  value={slotStartTime}
+                  onChange={(event) => setSlotStartTime(event.target.value)}
+                />
+              </label>
+              <label>
+                End time
+                <input
+                  type="time"
+                  required
+                  value={slotEndTime}
+                  min={slotStartTime || undefined}
+                  onChange={(event) => setSlotEndTime(event.target.value)}
+                />
+              </label>
+            </div>
             <label>
-              Start time
-              <input
-                type="time"
-                required
-                value={slotTime}
-                onChange={(event) => setSlotTime(event.target.value)}
-              />
+              Appointment duration
+              <select
+                value={slotDuration}
+                onChange={(event) => setSlotDuration(event.target.value)}
+              >
+                <option value="10">10 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">60 minutes</option>
+              </select>
             </label>
-          </div>
-          <div className="pd-form-actions">
-            <button className="pd-btn" type="button" onClick={() => setShowAvailabilityForm(false)}>
-              Cancel
-            </button>
-            <button className="pd-btn primary" type="submit">Save time</button>
-          </div>
-        </form>
+            {availabilityFormError && (
+              <p className="pd-form-error" role="alert">{availabilityFormError}</p>
+            )}
+            <div className="pd-form-actions">
+              <button
+                className="pd-btn"
+                type="button"
+                onClick={() => setShowAvailabilityForm(false)}
+              >
+                Cancel
+              </button>
+              <button className="pd-btn primary" type="submit">Save availability</button>
+            </div>
+          </form>
+        </div>
       )}
 
       <section className="pd-stats" aria-label="Dashboard summary">
         <article className="pd-stat-card">
-          <span className="pd-stat-label">Total bookings</span>
-          <strong>{bookings.length}</strong>
-          <span className="pd-stat-note">All time</span>
+          <span className="pd-stat-label">Completed this week</span>
+          <strong>{completedThisWeekCount}</strong>
+          <span className="pd-stat-note">Completed appointments</span>
         </article>
         <article className="pd-stat-card">
-          <span className="pd-stat-label"></span>
+          <span className="pd-stat-label">Total pending requests</span>
           <strong>{pendingCount}</strong>
-          <span className="pd-stat-note">Pending requests</span>
+          <span className="pd-stat-note">Waiting for review</span>
         </article>
         <article className="pd-stat-card">
-          <span className="pd-stat-label">Confirmed</span>
-          <strong>{confirmedCount}</strong>
-          <span className="pd-stat-note">Upcoming appointments</span>
+          <span className="pd-stat-label">This week</span>
+          <strong>{bookings.length}</strong>
+          <span className="pd-stat-note">Scheduled in total</span>
         </article>
-        <article className="pd-stat-card">
-          <span className="pd-stat-label">Services</span>
-          <strong>{provider.services.length}</strong>
-          <span className="pd-stat-note">Available to book</span>
-        </article>
-      </section>
-
-      <section className="pd-panel pd-section">
-        <div className="pd-section-heading">
-          <div>
-            <p className="pd-eyebrow">Your services</p>
-            <h2>Services</h2>
-          </div>
-          <span className="pd-muted">{provider.services.length} listed</span>
-        </div>
-        <ul className="pd-services">
-          {provider.services.map((service) => <li key={service}>{service}</li>)}
-        </ul>
       </section>
 
       <section className="pd-panel pd-section" id="bookings">
@@ -457,6 +749,7 @@ export const ProviderDashboard = () => {
                 <option>All bookings</option>
                 <option>Pending</option>
                 <option>Confirmed</option>
+                <option>Completed</option>
                 <option>Cancelled</option>
               </select>
             </label>
@@ -511,9 +804,19 @@ export const ProviderDashboard = () => {
                         </>
                       )}
                       {booking.status === 'Confirmed' && (
-                        <button className="pd-small pd-decline" onClick={() => updateBookingStatus(booking.id, 'Cancelled')}>
-                          Cancel
-                        </button>
+                        <>
+                          {new Date(`${booking.date}T${booking.time}:00`) <= new Date() && (
+                            <button
+                              className="pd-small pd-complete"
+                              onClick={() => updateBookingStatus(booking.id, 'Completed')}
+                            >
+                              Mark complete
+                            </button>
+                          )}
+                          <button className="pd-small pd-decline" onClick={() => updateBookingStatus(booking.id, 'Cancelled')}>
+                            Cancel
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -539,10 +842,7 @@ export const ProviderDashboard = () => {
             <p className="pd-eyebrow">Manage your schedule</p>
             <h2>Availability</h2>
           </div>
-          <button className="pd-text-button" onClick={() => {
-            setShowAvailabilityForm(true);
-            setFormMessage('');
-          }}>
+          <button className="pd-text-button" onClick={openAvailabilityForm}>
             + Add time
           </button>
         </div>
@@ -552,7 +852,11 @@ export const ProviderDashboard = () => {
           <ul className="pd-availability-list">
             {availability.map((slot) => (
               <li key={slot.id}>
-                <span>{formatDate(slot.date)} <strong>{slot.time}</strong></span>
+                <span>
+                  {formatDate(slot.date)}{' '}
+                  <strong>{slot.startTime}–{slot.endTime}</strong>
+                  <span className="pd-availability-duration">{slot.duration}-minute appointments</span>
+                </span>
                 <button
                   className="pd-text-button"
                   onClick={() => setAvailability((current) => current.filter((item) => item.id !== slot.id))}
@@ -566,28 +870,80 @@ export const ProviderDashboard = () => {
       </section>
 
       <section className="pd-panel pd-section" id="calendar">
-        <div className="pd-section-heading">
+        <div className="pd-section-heading pd-calendar-heading">
           <div>
             <p className="pd-eyebrow">Your schedule</p>
-            <h2>Calendar</h2>
+            <h2>
+              Week of {calendarWeekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </h2>
           </div>
-          <span className="pd-muted">{calendarItems.length} upcoming</span>
+          <div className="pd-calendar-controls">
+            <span className="pd-muted">{calendarItems.length} scheduled</span>
+            <button
+              className="pd-calendar-nav"
+              type="button"
+              aria-label="Previous week"
+              onClick={() => setCalendarWeekStart((week) => {
+                const previousWeek = new Date(week);
+                previousWeek.setDate(previousWeek.getDate() - 7);
+                return previousWeek;
+              })}
+            >
+              ‹
+            </button>
+            <button
+              className="pd-calendar-nav"
+              type="button"
+              aria-label="Next week"
+              onClick={() => setCalendarWeekStart((week) => {
+                const nextWeek = new Date(week);
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                return nextWeek;
+              })}
+            >
+              ›
+            </button>
+          </div>
         </div>
         {calendarItems.length === 0 ? (
           <p className="pd-availability-empty">Your calendar is clear. Add availability or accept a booking to get started.</p>
         ) : (
-          <ul className="pd-calendar-list">
-            {calendarItems.map((item) => (
-              <li key={item.id}>
-                <time dateTime={`${item.date}T${item.time}`}>
-                  <strong>{formatDate(item.date)}</strong>
-                  <span>{item.time}</span>
-                </time>
-                <span className="pd-calendar-title">{item.title}</span>
-                <span className="pd-calendar-detail">{item.detail}</span>
-              </li>
+          <div className="pd-calendar-grid" aria-label="Weekly calendar">
+            {calendarDays.map((day) => (
+              <section
+                className="pd-calendar-day"
+                key={day.dateKey}
+                aria-label={day.date.toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              >
+                <h3>
+                  <span>{day.date.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}</span>
+                  <time dateTime={day.dateKey}>
+                    {day.date.toLocaleDateString(undefined, { day: 'numeric' })}
+                  </time>
+                </h3>
+                <div className="pd-calendar-day-slots">
+                  {day.items.length === 0 ? (
+                    <span className="pd-calendar-empty" aria-label="No appointments">—</span>
+                  ) : (
+                    day.items.map((item) => (
+                      <article
+                        className={`pd-calendar-slot${item.detail === 'Open for booking' ? ' pd-calendar-slot-open' : ' pd-calendar-slot-booked'}`}
+                        key={item.id}
+                      >
+                        <time dateTime={`${item.date}T${item.time}`}>{item.timeLabel || item.time}</time>
+                        <strong>{item.title}</strong>
+                        <span>{item.detail}</span>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
       </section>
       </main>

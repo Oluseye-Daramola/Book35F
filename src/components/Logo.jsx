@@ -1,8 +1,6 @@
 
 import logoImg from '../assets/book35_logo_full.png';
 
-
-
 export const Logo=()=>{
   return (
     
