@@ -1,8 +1,9 @@
-
-
-
-
-export const TimeSlot = ({ time, status = 'open', selected = false, onClick }) => {
+export const TimeSlot=({
+  time,
+  day,
+  status = 'open',
+  selected = false,
+  onClick })=>{
   
   let className = 'time-slot tabular';
   
@@ -10,20 +11,18 @@ export const TimeSlot = ({ time, status = 'open', selected = false, onClick }) =
   
   if (selected) className += ' time-slot-selected';
 
-  
   return (
     
     <button
       type="button"
       className={className}
+      aria-pressed={selected}
       onClick={status === 'booked' ? undefined : onClick}
     >
-      
-      {time}
-      
+      {day && <span>{day}</span>}
+      <span>{time}</span>
     </button>
-    
   );
+
   
 }
-

@@ -1,14 +1,14 @@
-
-
-
 export const Card = (
-  { children, style }
-  
+  { children, style, className = '' }
 ) => {
   
   return (
     
-    <div className="card" style={style}>
+    <div 
+      className={`card${className ? ` ${className}` : ''}`}
+      style={style}
+      >
+      
       {children}
       
     </div>

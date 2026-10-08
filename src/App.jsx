@@ -49,7 +49,7 @@ export const App = () => {
           }
           />
           
-          <Route path="/book/:providerName" element={<BookingPage />} />
+          <Route path="/book/:slug" element={<BookingPage />} />
   
           {/**
           <Route path="/designDemo" element={<DesignDemo />} />

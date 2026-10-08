@@ -11,11 +11,18 @@
   max-width: 380px;
 }
 
+.auth-header{
+  margin-bottom: 18%;
+}
+
 .auth-footer {
   text-align: center;
   margin-top: 14px;
 }
 
 .auth-btn {
+  margin-top: 10%;
   text-align: center;
 }
+
+
